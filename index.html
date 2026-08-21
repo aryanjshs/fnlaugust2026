@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Photos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    background: #000;
+    color: #fff;
+    font-family: 'Montserrat', -apple-system, "Helvetica Neue", Helvetica, sans-serif;
+    font-weight: 500;
+    min-height: 100vh;
+  }
+
+  .wrap {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+  }
+
+  .header {
+    padding: 24px 0 4px;
+    font-size: 14px;
+    color: #888;
+    letter-spacing: 0.02em;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .back-btn {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #111;
+    color: #fff;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .back-btn svg { width: 16px; height: 16px; }
+  .header.sub .back-btn { display: flex; }
+
+  .date-list { padding: 8px 0 20px; }
+
+  .date-row {
+    display: block;
+    padding: 20px 4px;
+    border-bottom: 1px solid #1a1a1a;
+    text-decoration: none;
+    color: #fff;
+    cursor: pointer;
+  }
+
+  .date-row:first-child { border-top: 1px solid #1a1a1a; }
+  .date-row .label { font-size: 20px; font-weight: 600; }
+  .date-row .count { font-size: 13px; color: #888; margin-top: 4px; }
+
+  .status {
+    padding: 40px 4px;
+    color: #666;
+    font-size: 14px;
+    display: none;
+  }
+
+  .grid {
+    padding: 12px 0 20px;
+    column-count: 3;
+    column-gap: 10px;
+  }
+
+  .card {
+    position: relative;
+    overflow: hidden;
+    background: #111;
+    cursor: pointer;
+    border-radius: 16px;
+    box-shadow: 0 0 0 rgba(255,255,255,0);
+    transition: box-shadow 0.25s ease;
+    break-inside: avoid;
+    margin-bottom: 10px;
+  }
+
+  .card:hover { box-shadow: 0 0 24px rgba(255,255,255,0.22); }
+  .card img { width: 100%; height: auto; display: block; }
+
+  .dl-btn {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    color: #fff;
+  }
+
+  .dl-btn svg { width: 18px; height: 18px; }
+
+  .lightbox {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.92);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 32px;
+  }
+
+  .lightbox.open { display: flex; }
+
+  .lightbox img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    display: block;
+    border-radius: 16px;
+    box-shadow: 0 0 40px rgba(255,255,255,0.15);
+  }
+
+  .lightbox .dl-btn { bottom: 24px; right: 24px; width: 48px; height: 48px; }
+  .lightbox .dl-btn svg { width: 20px; height: 20px; }
+
+  .lightbox-close {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    cursor: pointer;
+  }
+
+  .lightbox-close svg { width: 18px; height: 18px; }
+
+  .fallback {
+    padding: 0 0 8px;
+    font-size: 12px;
+    color: #666;
+  }
+
+  .fallback a { color: #999; }
+  .fallback a:hover { color: #fff; }
+
+  .footer {
+    padding: 20px 0 40px;
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .insta-link {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #aaa;
+    text-decoration: none;
+    font-size: 13px;
+  }
+
+  .insta-link:hover { color: #fff; }
+  .insta-link svg { width: 20px; height: 20px; }
+  .insta-link span { color: #fff; font-weight: 600; }
+
+  @media (max-width: 700px) { .grid { column-count: 2; } }
+  @media (max-width: 420px) { .grid { column-count: 1; } }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="header" id="header">
+    <div class="back-btn" id="backBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
+    </div>
+    <span id="headerLabel"></span>
+  </div>
+
+  <div class="date-list" id="dateList"></div>
+  <div class="status" id="status"></div>
+  <div class="grid" id="grid"></div>
+  <div class="fallback" id="fallback" style="display:none">
+    if the download isn't working, <a id="fallbackLink" href="" target="_blank" rel="noopener">use this link</a>
+  </div>
+
+  <div class="footer">
+    <a class="insta-link" href="https://instagram.com/aryan.jadon_" target="_blank" rel="noopener">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r="1.1" fill="currentColor" stroke="none"/></svg>
+      follow me on insta! <span>@aryan.jadon_</span>
+    </a>
+  </div>
+</div>
+
+<div class="lightbox" id="lightbox">
+  <div class="lightbox-close" id="closeBtn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+  </div>
+  <img id="lightboxImg" src="" alt="">
+  <a class="dl-btn" id="lightboxDl" href="" download="">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+  </a>
+</div>
+
+<script>
+  /* ============================================================
+     SETUP — fill these two things in:
+
+     1. DRIVE_API_KEY: the API key from Google Cloud Console
+        (APIs & Services -> Credentials -> Create Credentials -> API Key)
+        Make sure the Google Drive API is enabled on that project.
+
+     2. dates: one entry per game/date. "folderId" is the id from
+        the Drive folder's share link, e.g. if the link is
+        drive.google.com/drive/folders/1AbCdEfGhIjKlMnOp
+        then folderId is "1AbCdEfGhIjKlMnOp"
+
+     Each Drive folder MUST be shared as "Anyone with the link -
+     Viewer" or the site won't be able to read it.
+
+     Nothing else needs to change — photos just show up automatically
+     whenever you drop new files into the folder.
+     ============================================================ */
+
+  const DRIVE_API_KEY = "AIzaSyBCt5GpgqBBIHBjqlsP9ZR1cwZo0ekYtkU";
+
+  const dates = [
+    {
+      id: "aug-20-26",
+      label: "8/20/26 shs game",
+      folderId: "1F4jRn9NfvYUPgkCJzWQ0JUjDMfrpqY2V"
+    }
+  ];
+
+  const dateListEl = document.getElementById('dateList');
+  const gridEl = document.getElementById('grid');
+  const statusEl = document.getElementById('status');
+  const headerEl = document.getElementById('header');
+  const headerLabelEl = document.getElementById('headerLabel');
+  const backBtn = document.getElementById('backBtn');
+  const fallbackEl = document.getElementById('fallback');
+  const fallbackLinkEl = document.getElementById('fallbackLink');
+  const lightbox = document.getElementById('lightbox');
+  const lightboxImg = document.getElementById('lightboxImg');
+  const lightboxDl = document.getElementById('lightboxDl');
+  const closeBtn = document.getElementById('closeBtn');
+
+  function downloadIcon() {
+    return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>`;
+  }
+
+  function previewUrl(fileId) {
+    return `https://lh3.googleusercontent.com/d/${fileId}=w800`;
+  }
+
+  function fullUrl(fileId) {
+    return `https://lh3.googleusercontent.com/d/${fileId}=s0`;
+  }
+
+  function downloadUrl(fileId) {
+    return `https://drive.google.com/uc?export=download&id=${fileId}`;
+  }
+
+  function renderHome() {
+    headerEl.classList.remove('sub');
+    headerLabelEl.textContent = '';
+    gridEl.style.display = 'none';
+    statusEl.style.display = 'none';
+    fallbackEl.style.display = 'none';
+    dateListEl.style.display = 'block';
+    dateListEl.innerHTML = '';
+
+    dates.forEach(d => {
+      const row = document.createElement('a');
+      row.className = 'date-row';
+      row.href = '#' + d.id;
+      row.innerHTML = `<div class="label">${d.label}</div><div class="count">view photos</div>`;
+      dateListEl.appendChild(row);
+    });
+  }
+
+  async function renderGallery(dateObj) {
+    headerEl.classList.add('sub');
+    headerLabelEl.textContent = dateObj.label;
+    dateListEl.style.display = 'none';
+    gridEl.style.display = '';
+    gridEl.innerHTML = '';
+    statusEl.style.display = 'block';
+    statusEl.textContent = 'Loading photos...';
+    fallbackLinkEl.href = `https://drive.google.com/drive/folders/${dateObj.folderId}`;
+    fallbackEl.style.display = 'block';
+
+    try {
+      const q = encodeURIComponent(`'${dateObj.folderId}' in parents and trashed = false`);
+      const url = `https://www.googleapis.com/drive/v3/files?q=${q}&key=${DRIVE_API_KEY}&fields=files(id,name,mimeType)&pageSize=1000`;
+      const res = await fetch(url);
+      const data = await res.json();
+
+      if (!res.ok) {
+        statusEl.textContent = 'Could not load this folder. Check the API key and that the folder is shared publicly.';
+        return;
+      }
+
+      const files = (data.files || []).filter(f => f.mimeType && f.mimeType.startsWith('image/'));
+
+      if (files.length === 0) {
+        statusEl.textContent = 'No photos in this folder yet.';
+        return;
+      }
+
+      statusEl.style.display = 'none';
+
+      files.forEach(f => {
+        const thumb = previewUrl(f.id);
+        const full = fullUrl(f.id);
+        const dl = downloadUrl(f.id);
+
+        const card = document.createElement('div');
+        card.className = 'card';
+
+        const img = document.createElement('img');
+        img.src = thumb;
+        img.loading = 'lazy';
+        img.addEventListener('click', () => openLightbox(full, dl));
+
+        const dlBtn = document.createElement('a');
+        dlBtn.className = 'dl-btn';
+        dlBtn.href = dl;
+        dlBtn.setAttribute('download', f.name || '');
+        dlBtn.innerHTML = downloadIcon();
+        dlBtn.addEventListener('click', e => e.stopPropagation());
+
+        card.appendChild(img);
+        card.appendChild(dlBtn);
+        gridEl.appendChild(card);
+      });
+    } catch (err) {
+      statusEl.textContent = 'Something went wrong loading photos.';
+    }
+  }
+
+  function route() {
+    const id = location.hash.replace('#', '');
+    const dateObj = dates.find(d => d.id === id);
+    if (dateObj) {
+      renderGallery(dateObj);
+    } else {
+      renderHome();
+    }
+  }
+
+  backBtn.addEventListener('click', () => { location.hash = ''; });
+  window.addEventListener('hashchange', route);
+
+  function openLightbox(url, dlUrl) {
+    lightboxImg.src = url;
+    lightboxDl.href = dlUrl || url;
+    lightbox.classList.add('open');
+  }
+
+  function closeLightbox() {
+    lightbox.classList.remove('open');
+  }
+
+  closeBtn.addEventListener('click', closeLightbox);
+  lightbox.addEventListener('click', e => {
+    if (e.target === lightbox) closeLightbox();
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeLightbox();
+  });
+
+  route();
+</script>
+
+</body>
+</html>
