@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" href="icon.ico">
-<title>shs gallery</title>
+<title>SHS Gallery Home</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600&display=swap" rel="stylesheet">
@@ -146,6 +146,30 @@
 
   .dl-btn svg { width: 18px; height: 18px; }
 
+  .card-share-btn {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform 0.15s cubic-bezier(0.22, 1, 0.36, 1), background 0.15s ease;
+  }
+
+  .card-share-btn svg { width: 16px; height: 16px; }
+  .card-share-btn:hover { transform: scale(1.08); background: #1a1a1a; }
+  .card-share-btn:active { transform: scale(0.9); }
+
   .fallback {
     padding: 0 0 8px;
     font-size: 12px;
@@ -205,16 +229,17 @@
 
   .photo-inner {
     position: relative;
-    display: inline-flex;
-    max-width: calc(100% - 0px);
-    max-height: 100%;
+    display: inline-block;
+    line-height: 0;
   }
 
   .lightbox img {
-    max-width: 100%;
-    max-height: 100%;
-    object-fit: contain;
     display: block;
+    max-width: calc(100vw - 64px);
+    max-height: calc(100vh - 64px);
+    width: auto;
+    height: auto;
+    object-fit: contain;
     border-radius: 16px;
     box-shadow: 0 0 40px rgba(255,255,255,0.15);
     transform: scale(0.94);
@@ -247,19 +272,25 @@
   .share-btn svg { width: 19px; height: 19px; }
 
   .copied-tag {
-    position: absolute;
-    bottom: 72px;
-    right: 16px;
-    font-size: 12px;
+    position: fixed;
+    left: 50%;
+    bottom: 32px;
+    transform: translateX(-50%) translateY(8px);
+    font-size: 13px;
     background: #000;
-    padding: 6px 12px;
+    border: 1px solid #2a2a2a;
+    padding: 8px 16px;
     border-radius: 20px;
     opacity: 0;
     pointer-events: none;
-    transition: opacity 0.2s ease;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    z-index: 300;
   }
 
-  .copied-tag.show { opacity: 1; }
+  .copied-tag.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
 
   .lightbox-close {
     position: absolute;
@@ -278,7 +309,7 @@
 
   .lightbox-close svg { width: 18px; height: 18px; }
 
-  .nav-btn, .lightbox-close, .dl-btn, .share-btn {
+  .nav-btn, .lightbox-close, .dl-btn, .share-btn, .card-share-btn {
     -webkit-user-select: none;
     -moz-user-select: none;
     user-select: none;
@@ -324,8 +355,8 @@
     .nav-next { right: 6px; }
     .share-btn { right: 62px; width: 42px; height: 42px; bottom: 12px; }
     .photo-inner .dl-btn { width: 42px; height: 42px; bottom: 12px; right: 12px; }
-    .copied-tag { right: 12px; bottom: 62px; }
   }
+
 </style>
 </head>
 <body>
@@ -382,9 +413,10 @@
     <a class="dl-btn" id="lightboxDl" href="" download="">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
     </a>
-    <div class="copied-tag" id="copiedTag">link copied</div>
   </div>
 </div>
+
+<div class="copied-tag" id="copiedTag">link copied</div>
 
 <script>
   /* ============================================================
@@ -442,9 +474,35 @@
     return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>`;
   }
 
+  function shareIcon() {
+    return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 14l5-5-5-5"/><path d="M4 20v-7a4 4 0 0 1 4-4h12"/></svg>`;
+  }
+
   function previewUrl(fileId) { return `https://lh3.googleusercontent.com/d/${fileId}=w400`; }
   function fullUrl(fileId) { return `https://lh3.googleusercontent.com/d/${fileId}=w1600`; }
   function downloadUrl(fileId) { return `https://drive.google.com/uc?export=download&id=${fileId}`; }
+
+  async function smartDownload(e, file) {
+    if (!navigator.canShare) return; // let the normal <a download> link proceed
+    e.preventDefault();
+    try {
+      const res = await fetch(downloadUrl(file.id));
+      const blob = await res.blob();
+      const shareFile = new File([blob], file.name || 'photo.jpg', { type: blob.type || 'image/jpeg' });
+      if (navigator.canShare({ files: [shareFile] })) {
+        await navigator.share({ files: [shareFile] });
+        return;
+      }
+    } catch (err) {
+      // fall through to a plain download
+    }
+    const a = document.createElement('a');
+    a.href = downloadUrl(file.id);
+    a.download = file.name || '';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
 
   async function getFiles(dateObj) {
     if (filesCache[dateObj.id]) return filesCache[dateObj.id];
@@ -480,13 +538,8 @@
       const row = document.createElement('a');
       row.className = 'date-row';
       row.href = '#' + d.id;
-      row.innerHTML = `<div class="label">${d.label}</div><div class="count" id="count-${d.id}">view photos</div>`;
+      row.innerHTML = `<div class="label">${d.label}</div><div class="count">view photos</div>`;
       dateListEl.appendChild(row);
-
-      getFiles(d).then(files => {
-        const el = document.getElementById(`count-${d.id}`);
-        if (el) el.textContent = `view photos (${files.length})`;
-      }).catch(() => {});
     });
   }
 
@@ -528,19 +581,38 @@
         img.src = previewUrl(f.id);
         img.loading = 'lazy';
         img.decoding = 'async';
-        if (f.imageMediaMetadata && f.imageMediaMetadata.width && f.imageMediaMetadata.height) {
-          img.style.aspectRatio = `${f.imageMediaMetadata.width} / ${f.imageMediaMetadata.height}`;
-        }
+        img.style.aspectRatio = '4 / 5';
+        img.style.objectFit = 'cover';
+        img.addEventListener('load', () => {
+          if (img.naturalWidth && img.naturalHeight) {
+            img.style.aspectRatio = `${img.naturalWidth} / ${img.naturalHeight}`;
+            img.style.objectFit = '';
+          }
+        }, { once: true });
 
         const dlBtn = document.createElement('a');
         dlBtn.className = 'dl-btn';
         dlBtn.href = downloadUrl(f.id);
         dlBtn.setAttribute('download', f.name || '');
         dlBtn.innerHTML = downloadIcon();
-        dlBtn.addEventListener('click', e => e.stopPropagation());
+        dlBtn.addEventListener('click', e => {
+          e.stopPropagation();
+          smartDownload(e, f);
+        });
+
+        const cardShareBtn = document.createElement('button');
+        cardShareBtn.className = 'card-share-btn';
+        cardShareBtn.innerHTML = shareIcon();
+        cardShareBtn.addEventListener('click', e => {
+          e.preventDefault();
+          e.stopPropagation();
+          const url = `${location.origin}${location.pathname}#${dateObj.id}/${f.id}`;
+          shareLink(url, dateObj.label);
+        });
 
         card.appendChild(img);
         card.appendChild(dlBtn);
+        card.appendChild(cardShareBtn);
         gridEl.appendChild(card);
       });
     } catch (err) {
@@ -555,6 +627,7 @@
     lightboxImg.src = fullUrl(f.id);
     lightboxDl.href = downloadUrl(f.id);
     lightboxDl.setAttribute('download', f.name || '');
+    lightboxDl.onclick = e => smartDownload(e, f);
     lightbox.classList.add('open');
     preloadNeighbors(idx);
   }
@@ -622,29 +695,36 @@
     el.addEventListener('mousedown', e => e.preventDefault());
   });
 
-  shareBtn.addEventListener('click', async () => {
-    const shareUrl = location.href;
+  shareBtn.addEventListener('click', () => {
+    shareLink(location.href, document.title);
+  });
+
+  async function shareLink(url, title) {
     if (navigator.share) {
       try {
-        await navigator.share({ url: shareUrl, title: document.title });
+        await navigator.share({ url, title: title || document.title });
         return;
       } catch (err) {
         // user cancelled or share failed, fall through to copy
       }
     }
     try {
-      await navigator.clipboard.writeText(shareUrl);
+      await navigator.clipboard.writeText(url);
     } catch (err) {
       const tmp = document.createElement('textarea');
-      tmp.value = shareUrl;
+      tmp.value = url;
       document.body.appendChild(tmp);
       tmp.select();
       document.execCommand('copy');
       document.body.removeChild(tmp);
     }
+    showToast();
+  }
+
+  function showToast() {
     copiedTag.classList.add('show');
     setTimeout(() => copiedTag.classList.remove('show'), 1400);
-  });
+  }
 
   document.addEventListener('keydown', e => {
     if (!lightbox.classList.contains('open')) return;
@@ -657,5 +737,6 @@
   route();
 </script>
 
+<!-- Cloudflare Web Analytics --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "1253c15e55cf420eb12f0888dc4f7251"}'></script><!-- End Cloudflare Web Analytics -->
 </body>
 </html>
